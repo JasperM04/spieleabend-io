@@ -55,15 +55,13 @@
   }
 
   .app{max-width:980px;margin:0 auto;padding:28px 20px 100px;position:relative}
-  header.brand{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:32px}
+  header.brand{display:flex;align-items:baseline;gap:16px;margin-bottom:32px}
   .logo{font-family:var(--serif);font-weight:900;font-size:clamp(34px,6vw,56px);letter-spacing:-.02em;line-height:.9}
   .logo em{font-style:italic;color:var(--accent)}
   .logo-dot{font-family:var(--mono);font-weight:400;font-size:.5em;color:var(--ink-dim);letter-spacing:0;vertical-align:baseline;margin-left:2px}
   .logo-btn{background:transparent;border:0;padding:0;color:var(--ink);cursor:pointer;text-align:left}
   .logo-btn:hover .logo em{color:var(--accent-2);transition:color .2s ease}
   .badge{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
-  .badge.live{color:var(--good);border-color:rgba(122,210,157,.4)}
-  .badge.mock{color:var(--accent-2);border-color:rgba(255,209,102,.4)}
 
   .card{
     background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.15));
@@ -269,7 +267,6 @@
     <button id="logoHome" class="logo-btn" title="Zum Hauptmenü">
       <span class="logo">spiele<em>abend</em><span class="logo-dot">.io</span></span>
     </button>
-    <div id="modeBadge" class="badge mock">Mock-Modus · lokal</div>
   </header>
 
   <!-- ============================================================= -->
@@ -623,14 +620,10 @@ async function initBackend(){
   if(window.firebaseConfig){
     try{
       backend = await makeFirebaseBackend(window.firebaseConfig);
-      $('#modeBadge').textContent = backend.label;
-      $('#modeBadge').className = 'badge live';
       return;
     }catch(e){ console.warn('Firebase fehlgeschlagen, fallback Mock', e); }
   }
   backend = makeMockBackend();
-  $('#modeBadge').textContent = backend.label;
-  $('#modeBadge').className = 'badge mock';
 }
 
 /* ====== HANDLERS ====== */
@@ -836,9 +829,14 @@ $('#buzzer').onclick = ()=>{
   if(!state.room || state.room.currentMode!=='buzzer') return;
   const round = state.room.round || {};
   if(round.buzzedBy) return; // schon gebuzzert
+  if(round.locked) return;   // Runde geschlossen
+  // Eigene Runden-ID merken, damit der Mutator beim Schreiben prüft, ob er noch zur selben Runde gehört
+  const myRoundId = round.roundId;
   backend.updateRoom(state.roomCode, r=>{
-    if(r.round && r.round.buzzedBy) return; // race-safe
-    r.round = r.round || {};
+    if(!r.round) return;
+    if(r.round.roundId !== myRoundId) return;  // Runde hat gewechselt → ignorieren
+    if(r.round.buzzedBy) return;               // jemand war schneller
+    if(r.round.locked) return;
     r.round.buzzedBy = state.playerId;
     r.round.buzzedAt = Date.now();
   });
@@ -851,8 +849,12 @@ $('#btnNext2').onclick = nextQuestion;
 $('#btnNext3').onclick = nextQuestion;
 
 function hostGradeBuzzer(correct){
+  const round = state.room?.round;
+  if(!round) return;
+  const myRoundId = round.roundId;
   backend.updateRoom(state.roomCode, r=>{
-    const buz = r.round?.buzzedBy;
+    if(!r.round || r.round.roundId !== myRoundId) return;
+    const buz = r.round.buzzedBy;
     if(!buz) return;
     if(correct){
       r.players[buz].score = (r.players[buz].score||0) + 1;
@@ -1003,9 +1005,11 @@ function resetInputs(){
 }
 
 function freshRound(mode){
-  if(mode==='buzzer') return { buzzedBy:null, buzzedAt:null, revealed:false, locked:false, wrongPlayers:{} };
-  if(mode==='text')   return { answers:{}, revealed:false, grades:{} };
-  if(mode==='estimate') return { answers:{}, revealed:false, awarded:[] };
+  // Eindeutige Runden-ID, damit Buzz-Transactions zur richtigen Runde gehören
+  const roundId = Date.now() + '-' + Math.random().toString(36).slice(2,7);
+  if(mode==='buzzer') return { roundId, buzzedBy:null, buzzedAt:null, revealed:false, locked:false, wrongPlayers:null };
+  if(mode==='text')   return { roundId, answers:null, revealed:false, grades:null };
+  if(mode==='estimate') return { roundId, answers:null, revealed:false, awarded:null };
 }
 
 /* ====== SUBSCRIPTION & RENDER ====== */
@@ -1093,25 +1097,34 @@ function render(){
 
 function renderBuzzer(r,q){
   const round = r.round || {};
-  const buz = round.buzzedBy;
-  const meBlocked = round.wrongPlayers && round.wrongPlayers[state.playerId];
-  const locked = !!buz || round.locked || meBlocked;
+  const buz = round.buzzedBy || null;
+  // Defensiv: wrongPlayers darf alles sein (null, {}, oder Objekt). Nur echte Truthy-Werte blocken.
+  const wp = round.wrongPlayers;
+  const meBlocked = !!(wp && typeof wp === 'object' && wp[state.playerId]);
+  const someoneBuzzed = !!buz;
+  const roundLocked = !!round.locked;
+  const revealed = !!round.revealed;
+  const locked = someoneBuzzed || roundLocked || revealed || meBlocked;
+
   const btn = $('#buzzer');
   btn.classList.toggle('locked', locked);
   btn.disabled = locked;
-  if(round.revealed){
+
+  if(revealed){
     $('#buzzInfo').innerHTML = `Antwort: <span class="answer-pill">${escape(formatAnswer(q.a))}</span>`;
-  } else if(buz){
+  } else if(someoneBuzzed){
     const name = r.players[buz]?.name || '?';
     $('#buzzInfo').textContent = `${name} hat gebuzzert!`;
   } else if(meBlocked){
     $('#buzzInfo').textContent = 'Du hast bereits falsch geantwortet – warte auf den nächsten.';
+  } else if(roundLocked){
+    $('#buzzInfo').textContent = 'Runde abgeschlossen.';
   } else {
     $('#buzzInfo').textContent = 'Drück so schnell wie möglich.';
   }
   $('#hostBuzzerControls').classList.toggle('hide', !state.isHost);
-  $('#btnCorrect').disabled = !buz;
-  $('#btnWrong').disabled = !buz;
+  $('#btnCorrect').disabled = !someoneBuzzed;
+  $('#btnWrong').disabled = !someoneBuzzed;
 }
 
 function renderText(r,q){
@@ -1357,11 +1370,22 @@ function tickTimer(){
     if(fill){ fill.style.transform = 'scaleX(0)'; fill.classList.add('danger'); }
     ringWrap.classList.remove('pulse');
     stopTimerTick();
-    // Nur Host löst auf
+
+    // Jeder Client reicht seine lokal getippte Antwort ein, bevor das Reveal kommt
+    // (nur sinnvoll im Text- und Schätzmodus; submit* prüft selbst, ob's was zu senden gibt)
+    if(r.currentMode === 'text'){
+      submitTextAnswer({ silent: true });
+    } else if(r.currentMode === 'estimate'){
+      submitEstAnswer({ silent: true });
+    }
+
+    // Nur Host löst auf (kurze Verzögerung, damit Auto-Submits ankommen)
     if(state.isHost && !r.round.revealed){
-      backend.updateRoom(state.roomCode, rr=>{
-        if(rr.round && !rr.round.revealed) rr.round.revealed = true;
-      });
+      setTimeout(()=>{
+        backend.updateRoom(state.roomCode, rr=>{
+          if(rr.round && !rr.round.revealed) rr.round.revealed = true;
+        });
+      }, 250);
     }
     return;
   }
