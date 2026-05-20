@@ -258,6 +258,26 @@
   details{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:#13101b}
   details summary{cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
   pre{white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+
+  /* Pool-Picker */
+  .pool-picker{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
+  .pool-picker-header{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .pool-picker-title{font-family:var(--serif);font-weight:700;font-size:18px}
+  .pool-picker-hint{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
+  .pool-picker-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .pool-check{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#13101b;cursor:pointer;
+    transition:border-color .2s ease, background .2s ease
+  }
+  .pool-check:hover{border-color:var(--accent)}
+  .pool-check input[type=checkbox]{
+    width:18px;height:18px;accent-color:var(--accent);margin:0;cursor:pointer;flex-shrink:0
+  }
+  .pool-check:has(input:checked){border-color:var(--accent);background:rgba(255,90,77,.06)}
+  .pool-label{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .pool-name{font-weight:600;font-size:14px;color:var(--ink)}
+  .pool-count{font-family:var(--mono);font-size:11px;color:var(--ink-dim)}
 </style>
 </head>
 <body>
@@ -297,9 +317,47 @@
       </div>
     </div>
 
+    <div class="pool-picker">
+      <div class="pool-picker-header">
+        <span class="pool-picker-title">Fragen-Pools</span>
+        <span class="pool-picker-hint">aktiv → werden für den Raum gemischt</span>
+      </div>
+      <div class="pool-picker-grid">
+        <label class="pool-check">
+          <input type="checkbox" class="poolBox" data-pool="allgemein" checked>
+          <span class="pool-label">
+            <span class="pool-name">Allgemeinwissen</span>
+            <span class="pool-count" id="pc-allgemein">100 + 15</span>
+          </span>
+        </label>
+        <label class="pool-check">
+          <input type="checkbox" class="poolBox" data-pool="schule" checked>
+          <span class="pool-label">
+            <span class="pool-name">Schule (Klasse 8–10)</span>
+            <span class="pool-count" id="pc-schule">50</span>
+          </span>
+        </label>
+        <label class="pool-check">
+          <input type="checkbox" class="poolBox" data-pool="sport" checked>
+          <span class="pool-label">
+            <span class="pool-name">Sport (Fußball-Fokus)</span>
+            <span class="pool-count" id="pc-sport">50</span>
+          </span>
+        </label>
+        <label class="pool-check">
+          <input type="checkbox" class="poolBox" data-pool="games" checked>
+          <span class="pool-label">
+            <span class="pool-name">Videospiele & E-Sport</span>
+            <span class="pool-count" id="pc-games">50</span>
+          </span>
+        </label>
+      </div>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">Beim Öffnen eines Raums wird ein <strong>25-Fragen-Pool</strong> aus den aktiven Pools zufällig gezogen. Jede Frage kommt höchstens einmal — beim nächsten Raum wird neu gemischt.</p>
+    </div>
+
     <details>
-      <summary>Fragen-JSON laden (optional, sonst Default)</summary>
-      <p class="muted" style="margin-top:10px">Lade eine eigene <code>questions.json</code> – Format unten erklärt.</p>
+      <summary>Eigene Fragen-JSON laden (zusätzlich zu den Pools)</summary>
+      <p class="muted" style="margin-top:10px">Lade eine eigene <code>questions.json</code> – wird mit den aktiven Pools gemischt. Format unten erklärt.</p>
       <input type="file" id="fileQuestions" accept="application/json">
       <pre id="loadedInfo" class="muted" style="margin-top:8px"></pre>
     </details>
@@ -497,28 +555,325 @@ const ADMIN_PIN = "1234"; // <— hier ändern
 const MAX_PLAYERS = 4;
 
 /* ====== DEFAULT-FRAGEN ====== */
-const DEFAULT_QUESTIONS = {
-  buzzer: [
-    { q: "Welcher Planet ist der größte in unserem Sonnensystem?", a: "Jupiter" },
-    { q: "Wie viele Bundesländer hat Deutschland?", a: "16" },
-    { q: "In welchem Jahr fiel die Berliner Mauer?", a: "1989" },
-    { q: "Hauptstadt von Australien?", a: "Canberra" },
-    { q: "Wer malte die Mona Lisa?", a: "Leonardo da Vinci" }
-  ],
-  text: [
-    { q: "Nenne einen Film mit Tom Hanks.", a: ["Forrest Gump", "Cast Away", "Toy Story", "Der Soldat James Ryan", "Captain Phillips", "Apollo 13", "Big", "Philadelphia"] },
-    { q: "Was ist die Hauptzutat in Guacamole?", a: ["Avocado", "Avocados"] },
-    { q: "Wer schrieb 'Die Verwandlung'?", a: ["Franz Kafka", "Kafka"] },
-    { q: "Hauptstadt von Frankreich?", a: "Paris" },
-    { q: "Welches Tier legt die größten Eier der Welt?", a: ["Strauß", "Vogel Strauß"] }
-  ],
-  estimate: [
-    { q: "Wie hoch ist der Eiffelturm in Metern (inkl. Antenne)?", a: 330 },
-    { q: "In welchem Jahr wurde das iPhone vorgestellt?", a: 2007 },
-    { q: "Wie viele Knochen hat ein erwachsener Mensch?", a: 206 },
-    { q: "Wie viele Einwohner hat Berlin (in Millionen, runden)?", a: 3.7 }
-  ]
+const POOLS = {
+  allgemein: {
+    name: "Allgemeinwissen",
+    text: [
+      {"id":"a001","q":"Welche Vögel legen keine Eier?","a":["die männlichen","männliche Vögel","Männchen","Hähne","die Männchen"]},
+      {"id":"a002","q":"Wie viele Monate haben 28 Tage?","a":["alle","alle 12","12","zwölf","alle Monate"]},
+      {"id":"a003","q":"Was kommt einmal in einer Minute vor, zweimal in einem Moment, aber niemals in tausend Jahren?","a":["der Buchstabe M","M","Buchstabe M","das M"]},
+      {"id":"a004","q":"Wenn ein Flugzeug genau an der Grenze zwischen Deutschland und Polen abstürzt, wo werden die Überlebenden begraben?","a":["nirgends","gar nicht","Überlebende begräbt man nicht","man begräbt keine Überlebenden"]},
+      {"id":"a005","q":"Was hat einen Hals aber keinen Kopf?","a":["eine Flasche","Flasche","Flaschenhals"]},
+      {"id":"a006","q":"Hauptstadt von Frankreich?","a":"Paris"},
+      {"id":"a007","q":"Hauptstadt von Italien?","a":"Rom"},
+      {"id":"a008","q":"Hauptstadt von Spanien?","a":"Madrid"},
+      {"id":"a009","q":"Hauptstadt von Portugal?","a":"Lissabon"},
+      {"id":"a010","q":"Hauptstadt von Schweden?","a":"Stockholm"},
+      {"id":"a011","q":"Hauptstadt von Norwegen?","a":"Oslo"},
+      {"id":"a012","q":"Hauptstadt von Finnland?","a":"Helsinki"},
+      {"id":"a013","q":"Hauptstadt von Dänemark?","a":["Kopenhagen","København"]},
+      {"id":"a014","q":"Hauptstadt von Polen?","a":["Warschau","Warsaw"]},
+      {"id":"a015","q":"Hauptstadt von Tschechien?","a":["Prag","Praha"]},
+      {"id":"a016","q":"Hauptstadt von Australien?","a":"Canberra"},
+      {"id":"a017","q":"Hauptstadt von Kanada?","a":"Ottawa"},
+      {"id":"a018","q":"Hauptstadt der USA?","a":["Washington","Washington D.C.","Washington DC"]},
+      {"id":"a019","q":"Hauptstadt von Brasilien?","a":["Brasília","Brasilia"]},
+      {"id":"a020","q":"Hauptstadt von Japan?","a":["Tokio","Tokyo"]},
+      {"id":"a021","q":"Hauptstadt von Südkorea?","a":"Seoul"},
+      {"id":"a022","q":"Hauptstadt von Ägypten?","a":["Kairo","Cairo"]},
+      {"id":"a023","q":"Hauptstadt von Marokko?","a":["Rabat"]},
+      {"id":"a024","q":"Hauptstadt von Südafrika (Regierungssitz)?","a":["Pretoria"]},
+      {"id":"a025","q":"Welcher ist der längste Fluss der Welt?","a":["Nil","der Nil"]},
+      {"id":"a026","q":"Welches ist das größte Land der Welt nach Fläche?","a":["Russland","Russische Föderation"]},
+      {"id":"a027","q":"Welcher Planet ist der Sonne am nächsten?","a":"Merkur"},
+      {"id":"a028","q":"Welcher Planet ist der größte im Sonnensystem?","a":"Jupiter"},
+      {"id":"a029","q":"Welcher Planet ist als 'Roter Planet' bekannt?","a":"Mars"},
+      {"id":"a030","q":"Wie heißt der Erdtrabant?","a":["Mond","der Mond","Luna"]},
+      {"id":"a031","q":"Was ist das chemische Symbol für Gold?","a":"Au"},
+      {"id":"a032","q":"Was ist das chemische Symbol für Silber?","a":"Ag"},
+      {"id":"a033","q":"Was ist das chemische Symbol für Eisen?","a":"Fe"},
+      {"id":"a034","q":"Was ist das chemische Symbol für Quecksilber?","a":"Hg"},
+      {"id":"a035","q":"Welche Farbe entsteht, wenn man Blau und Gelb mischt?","a":["Grün"]},
+      {"id":"a036","q":"Aus wie vielen Spielern besteht eine Fußballmannschaft auf dem Feld?","a":["11","elf"]},
+      {"id":"a037","q":"Wie viele Augen hat eine Spinne typischerweise?","a":["8","acht"]},
+      {"id":"a038","q":"Welches Tier ist das schnellste Landtier?","a":["Gepard","der Gepard"]},
+      {"id":"a039","q":"Welches ist das größte Säugetier der Welt?","a":["Blauwal","der Blauwal"]},
+      {"id":"a040","q":"Wer schrieb 'Faust'?","a":["Goethe","Johann Wolfgang von Goethe","Johann Wolfgang Goethe"]},
+      {"id":"a041","q":"Wer schrieb 'Die Räuber'?","a":["Schiller","Friedrich Schiller"]},
+      {"id":"a042","q":"Wer komponierte die 9. Sinfonie mit 'Ode an die Freude'?","a":["Beethoven","Ludwig van Beethoven"]},
+      {"id":"a043","q":"Wer malte die Mona Lisa?","a":["Leonardo da Vinci","Da Vinci","Leonardo"]},
+      {"id":"a044","q":"Wer malte die Sternennacht?","a":["Vincent van Gogh","Van Gogh"]},
+      {"id":"a045","q":"Welches Element hat die Ordnungszahl 1?","a":["Wasserstoff","H"]},
+      {"id":"a046","q":"Welches Gas atmen wir hauptsächlich aus?","a":["Kohlenstoffdioxid","CO2","Kohlendioxid"]},
+      {"id":"a047","q":"Wie viele Kontinente gibt es?","a":["7","sieben"]},
+      {"id":"a048","q":"Welcher Ozean ist der größte?","a":["Pazifik","Pazifischer Ozean","der Pazifik"]},
+      {"id":"a049","q":"Was ist der höchste Berg der Welt?","a":["Mount Everest","Everest"]},
+      {"id":"a050","q":"Wo steht der Eiffelturm?","a":["Paris","in Paris"]},
+      {"id":"a051","q":"In welchem Land steht die Chinesische Mauer?","a":["China","Volksrepublik China"]},
+      {"id":"a052","q":"Welche Stadt war im Kalten Krieg geteilt durch eine Mauer?","a":["Berlin"]},
+      {"id":"a053","q":"In welchem Jahr fiel die Berliner Mauer?","a":["1989"]},
+      {"id":"a054","q":"Wann begann der Zweite Weltkrieg?","a":["1939"]},
+      {"id":"a055","q":"Wann endete der Zweite Weltkrieg?","a":["1945"]},
+      {"id":"a056","q":"Wer war der erste Mensch auf dem Mond?","a":["Neil Armstrong","Armstrong"]},
+      {"id":"a057","q":"In welchem Jahr landete der Mensch zum ersten Mal auf dem Mond?","a":["1969"]},
+      {"id":"a058","q":"Welche Sprache wird in Brasilien gesprochen?","a":["Portugiesisch","brasilianisches Portugiesisch"]},
+      {"id":"a059","q":"Welche Sprache wird in Österreich gesprochen?","a":["Deutsch"]},
+      {"id":"a060","q":"Welche Währung wird in Japan verwendet?","a":["Yen","Japanischer Yen"]},
+      {"id":"a061","q":"Welche Währung wird in Großbritannien verwendet?","a":["Pfund","Britisches Pfund","Pfund Sterling","Pound"]},
+      {"id":"a062","q":"Welche Währung wird in der Schweiz verwendet?","a":["Franken","Schweizer Franken","CHF"]},
+      {"id":"a063","q":"Wie viele Streifen hat die US-Flagge?","a":["13","dreizehn"]},
+      {"id":"a064","q":"Welches Tier ist das Symbol der WWF?","a":["Panda","Großer Panda","Riesenpanda"]},
+      {"id":"a065","q":"Was ist die Hauptzutat von Guacamole?","a":["Avocado","Avocados"]},
+      {"id":"a066","q":"Welches Land ist berühmt für Sushi?","a":["Japan"]},
+      {"id":"a067","q":"Welches Land erfand die Pizza?","a":["Italien"]},
+      {"id":"a068","q":"Welche Stadt ist berühmt für ihre Gondeln?","a":["Venedig","Venezia"]},
+      {"id":"a069","q":"Wer ist der griechische Gott des Meeres?","a":["Poseidon"]},
+      {"id":"a070","q":"Wer ist der römische Gott des Krieges?","a":["Mars"]},
+      {"id":"a071","q":"Trick: Wenn der Hahn ein Ei auf den First eines Daches legt, auf welcher Seite rollt es runter?","a":["auf keiner","auf keiner Seite","Hähne legen keine Eier","Hähne legen gar keine Eier","gar keine"]},
+      {"id":"a072","q":"Was wiegt mehr: ein Kilo Federn oder ein Kilo Blei?","a":["gleich viel","beide gleich","gleich schwer","ist gleich"]},
+      {"id":"a073","q":"Wenn du in einem Rennen den zweiten Platz überholst, welcher Platz bist du jetzt?","a":["der zweite","zweiter","Platz 2","2"]},
+      {"id":"a074","q":"Wie viele Tiere jeder Art nahm Moses mit auf die Arche?","a":["keine","0","Moses hatte keine Arche","Noah war es","Noah"]},
+      {"id":"a075","q":"Du fährst Bus. An der ersten Haltestelle steigen 5 Leute ein. An der zweiten 3 ein, 2 aus. Wie alt ist der Busfahrer?","a":["so alt wie du","wie alt ich bin","mein Alter","ich bin der Busfahrer"]},
+      {"id":"a076","q":"Welche Hand bewegt sich nicht, wenn man auf einer Uhr die 12 anzeigt und beide Zeiger übereinander stehen lassen will?","a":["beide bewegen sich","beide","keine bleibt stehen"]},
+      {"id":"a077","q":"Wie viele Beine hat eine Tausendfüßler tatsächlich höchstens?","a":["750","siebenhundertfünfzig"]},
+      {"id":"a078","q":"Welche Art von Käse wird rückwärts gemacht?","a":["Edam","Edamer"]},
+      {"id":"a079","q":"Was hat 4 Beine am Morgen, 2 am Mittag und 3 am Abend?","a":["der Mensch","Mensch","ein Mensch"]},
+      {"id":"a080","q":"Wer schrieb 'Hamlet'?","a":["Shakespeare","William Shakespeare"]},
+      {"id":"a081","q":"Welche Sprache wird im Vatikan offiziell verwendet?","a":["Latein","Lateinisch"]},
+      {"id":"a082","q":"In welchem Land liegt die Stadt Marrakesch?","a":["Marokko"]},
+      {"id":"a083","q":"Was ist die Hauptstadt von Argentinien?","a":["Buenos Aires"]},
+      {"id":"a084","q":"Wer hat das Telefon erfunden?","a":["Alexander Graham Bell","Graham Bell","Bell"]},
+      {"id":"a085","q":"Wer entwickelte die Relativitätstheorie?","a":["Albert Einstein","Einstein"]},
+      {"id":"a086","q":"Was bedeutet 'CPU'?","a":["Central Processing Unit","Hauptprozessor","Zentraleinheit"]},
+      {"id":"a087","q":"Was bedeutet 'WWW'?","a":["World Wide Web"]},
+      {"id":"a088","q":"Welcher Vogel ist das Symbol der USA?","a":["Weißkopfseeadler","Adler","Weißkopf-Seeadler","Bald Eagle"]},
+      {"id":"a089","q":"Welches Organ pumpt das Blut durch den Körper?","a":["Herz","das Herz"]},
+      {"id":"a090","q":"Wie viele Knochen hat ein erwachsener Mensch?","a":["206"]},
+      {"id":"a091","q":"Wie heißt das größte Organ des menschlichen Körpers?","a":["Haut","die Haut"]},
+      {"id":"a092","q":"Welcher Edelstein ist traditionell rot?","a":["Rubin"]},
+      {"id":"a093","q":"Welcher Edelstein ist traditionell grün?","a":["Smaragd"]},
+      {"id":"a094","q":"Wie heißt die kleinste Einheit der Materie, die nicht weiter chemisch geteilt werden kann?","a":["Atom","das Atom"]},
+      {"id":"a095","q":"In welchem Jahr wurde die Titanic versenkt?","a":["1912"]},
+      {"id":"a096","q":"Welche Stadt ist als 'Stadt der Liebe' bekannt?","a":["Paris"]},
+      {"id":"a097","q":"Welches Insekt produziert Honig?","a":["Biene","die Biene","Bienen","Honigbiene"]},
+      {"id":"a098","q":"Welche Farben hat die deutsche Flagge?","a":["Schwarz Rot Gold","Schwarz-Rot-Gold","Schwarz, Rot, Gold","schwarz rot gold"]},
+      {"id":"a099","q":"Was sagt der Volksmund: 'Lügen haben kurze...'?","a":["Beine"]},
+      {"id":"a100","q":"Trick: Wie nennt man den 21. Buchstaben des Alphabets?","a":["U"]},
+    ],
+    estimate: [
+      {"id":"ae01","q":"Wie viele Stufen hat der Eiffelturm bis zur Spitze?","a":1665},
+      {"id":"ae02","q":"In welchem Jahr wurde das WWW erfunden?","a":1989},
+      {"id":"ae03","q":"Wie viele Sekunden hat ein Tag?","a":86400},
+      {"id":"ae04","q":"Wie viele Knochen hat ein neugeborenes Baby?","a":270},
+      {"id":"ae05","q":"Wie viele Liter Blut hat ein erwachsener Mensch ungefähr?","a":5},
+      {"id":"ae06","q":"Wie alt war die Queen Elizabeth II bei ihrem Tod?","a":96},
+      {"id":"ae07","q":"Wie hoch ist der Mount Everest in Metern?","a":8849},
+      {"id":"ae08","q":"Wie viele Einwohner hat Deutschland in Millionen?","a":84},
+      {"id":"ae09","q":"Wie viele Einwohner hat Berlin (in Millionen)?","a":3.7},
+      {"id":"ae10","q":"Wie viele Quadratkilometer hat Deutschland?","a":357000},
+      {"id":"ae11","q":"Wie viele Bundesländer hat Deutschland?","a":16},
+      {"id":"ae12","q":"Wie schnell ist Schall in m/s?","a":343},
+      {"id":"ae13","q":"Wie viele Kilometer ist die Sonne von der Erde entfernt (in Millionen)?","a":150},
+      {"id":"ae14","q":"Wie viele Sprachen werden weltweit ungefähr gesprochen?","a":7000},
+      {"id":"ae15","q":"Wie viele Muskeln hat ein Mensch ungefähr?","a":650},
+    ]
+  },
+  schule: {
+    name: "Schule (Klasse 8-10)",
+    text: [
+      {"id":"s001","q":"Mathe: Was ist 7 hoch 3?","a":["343"]},
+      {"id":"s002","q":"Mathe: Was ist die Wurzel aus 144?","a":["12","zwölf"]},
+      {"id":"s003","q":"Mathe: Was ist 15% von 200?","a":["30"]},
+      {"id":"s004","q":"Mathe: Wie heißt der Satz a² + b² = c²?","a":["Satz des Pythagoras","Pythagoras","pythagoreischer Lehrsatz"]},
+      {"id":"s005","q":"Mathe: Wie nennt man eine Zahl, die nur durch 1 und sich selbst teilbar ist?","a":["Primzahl","Primzahlen"]},
+      {"id":"s006","q":"Mathe: Wie viele Grad hat die Winkelsumme im Dreieck?","a":["180","180 Grad","180°"]},
+      {"id":"s007","q":"Mathe: Wie viel ist Pi (auf zwei Nachkommastellen)?","a":["3.14","3,14"]},
+      {"id":"s008","q":"Physik: Welche SI-Einheit hat die Kraft?","a":["Newton","N"]},
+      {"id":"s009","q":"Physik: Welche SI-Einheit hat die elektrische Spannung?","a":["Volt","V"]},
+      {"id":"s010","q":"Physik: Welche SI-Einheit hat die elektrische Stromstärke?","a":["Ampere","A"]},
+      {"id":"s011","q":"Physik: Wer formulierte die drei Bewegungsgesetze?","a":["Newton","Isaac Newton"]},
+      {"id":"s012","q":"Physik: Welche Geschwindigkeit hat das Licht im Vakuum (km/s)?","a":["300000","299792","300.000","etwa 300000"]},
+      {"id":"s013","q":"Chemie: Was ist die chemische Formel von Wasser?","a":["H2O","H₂O"]},
+      {"id":"s014","q":"Chemie: Was ist die chemische Formel von Kochsalz?","a":["NaCl","Natriumchlorid"]},
+      {"id":"s015","q":"Chemie: Welches Element hat das Symbol O?","a":["Sauerstoff"]},
+      {"id":"s016","q":"Chemie: Welches Element hat das Symbol N?","a":["Stickstoff"]},
+      {"id":"s017","q":"Chemie: Welches Element hat das Symbol C?","a":["Kohlenstoff"]},
+      {"id":"s018","q":"Chemie: Welche Ordnungszahl hat Sauerstoff?","a":["8","acht"]},
+      {"id":"s019","q":"Chemie: Welches Gas wird zur Photosynthese benötigt?","a":["CO2","Kohlenstoffdioxid","Kohlendioxid"]},
+      {"id":"s020","q":"Biologie: Wie heißt das Zellorganell, das als 'Kraftwerk' der Zelle bezeichnet wird?","a":["Mitochondrium","Mitochondrien"]},
+      {"id":"s021","q":"Biologie: Wer entwickelte die Evolutionstheorie?","a":["Charles Darwin","Darwin"]},
+      {"id":"s022","q":"Biologie: Welche Blutgruppe ist Universalspender?","a":["0 negativ","0-","Null negativ","null minus"]},
+      {"id":"s023","q":"Biologie: Wie heißt der größte Muskel im menschlichen Körper?","a":["Gesäßmuskel","großer Gesäßmuskel","Gluteus Maximus","Po-Muskel"]},
+      {"id":"s024","q":"Biologie: Wie nennt man die Erbsubstanz?","a":["DNA","DNS","Desoxyribonukleinsäure"]},
+      {"id":"s025","q":"Biologie: Wie viele Chromosomen hat der Mensch?","a":["46"]},
+      {"id":"s026","q":"Biologie: Wie heißt die Photosynthese vereinfacht? Aus CO2 und Wasser wird ___ und Sauerstoff.","a":["Glukose","Zucker","Traubenzucker"]},
+      {"id":"s027","q":"Erdkunde: Welcher Fluss fließt durch Köln?","a":["Rhein"]},
+      {"id":"s028","q":"Erdkunde: Welcher Fluss fließt durch Hamburg?","a":["Elbe"]},
+      {"id":"s029","q":"Erdkunde: An welchem Meer liegt Hamburg?","a":["Nordsee"]},
+      {"id":"s030","q":"Erdkunde: Welche Stadt ist die Hauptstadt Bayerns?","a":["München"]},
+      {"id":"s031","q":"Geschichte: In welchem Jahr begann der Erste Weltkrieg?","a":["1914"]},
+      {"id":"s032","q":"Geschichte: Wer war der erste Bundeskanzler Deutschlands?","a":["Konrad Adenauer","Adenauer"]},
+      {"id":"s033","q":"Geschichte: In welchem Jahr wurde das Grundgesetz verkündet?","a":["1949"]},
+      {"id":"s034","q":"Geschichte: Wie nennt man den Krieg zwischen Nord- und Südstaaten der USA?","a":["Sezessionskrieg","Amerikanischer Bürgerkrieg","Bürgerkrieg"]},
+      {"id":"s035","q":"Geschichte: Wer war der erste römische Kaiser?","a":["Augustus","Octavian","Kaiser Augustus"]},
+      {"id":"s036","q":"Deutsch: Wie nennt man Wörter, die gleich klingen aber unterschiedliche Bedeutung haben?","a":["Homophone","Homonyme"]},
+      {"id":"s037","q":"Deutsch: Wer schrieb 'Die Leiden des jungen Werthers'?","a":["Goethe","Johann Wolfgang von Goethe"]},
+      {"id":"s038","q":"Deutsch: Wer schrieb 'Die Verwandlung'?","a":["Kafka","Franz Kafka"]},
+      {"id":"s039","q":"Deutsch: Wie nennt man ein vergleichendes Stilmittel mit 'wie'?","a":["Vergleich","ein Vergleich"]},
+      {"id":"s040","q":"Deutsch: Wie nennt man die Wortart 'Hauptwort'?","a":["Substantiv","Nomen","Hauptwort"]},
+      {"id":"s041","q":"Deutsch: Wie heißt die Mehrzahl von 'Atlas'?","a":["Atlanten","Atlasse"]},
+      {"id":"s042","q":"Deutsch: Welcher Kasus antwortet auf 'Wem'?","a":["Dativ","der Dativ","dritter Fall"]},
+      {"id":"s043","q":"Englisch: Was heißt 'Schmetterling' auf Englisch?","a":["butterfly"]},
+      {"id":"s044","q":"Englisch: Was heißt 'Eichhörnchen' auf Englisch?","a":["squirrel"]},
+      {"id":"s045","q":"Englisch: Was heißt 'Regenbogen' auf Englisch?","a":["rainbow"]},
+      {"id":"s046","q":"Englisch: Was ist die Vergangenheit von 'to go'?","a":["went"]},
+      {"id":"s047","q":"Englisch: Was ist die Vergangenheit von 'to be' (3. Person Singular)?","a":["was"]},
+      {"id":"s048","q":"Englisch: Wie heißt das Past Participle von 'to write'?","a":["written"]},
+      {"id":"s049","q":"Englisch: Übersetze: 'I have been waiting'?","a":["Ich habe gewartet","Ich warte schon","ich warte"]},
+      {"id":"s050","q":"Englisch: Wer schrieb 'Romeo and Juliet'?","a":["Shakespeare","William Shakespeare"]},
+    ],
+    estimate: [
+    ]
+  },
+  sport: {
+    name: "Sport (Fußball-Fokus)",
+    text: [
+      {"id":"sp001","q":"Fußball: Wie viele Spieler hat eine Mannschaft auf dem Feld?","a":["11","elf"]},
+      {"id":"sp002","q":"Fußball: Wie lange dauert ein Fußballspiel regulär?","a":["90","90 Minuten","neunzig Minuten"]},
+      {"id":"sp003","q":"Fußball: Wer ist deutscher Rekord-Nationalspieler (über 150 Spiele)?","a":["Lothar Matthäus","Matthäus"]},
+      {"id":"sp004","q":"Fußball: Welches Land gewann die WM 2022 in Katar?","a":["Argentinien"]},
+      {"id":"sp005","q":"Fußball: Welches Land gewann die WM 2014?","a":["Deutschland"]},
+      {"id":"sp006","q":"Fußball: Welches Land gewann die WM 2018?","a":["Frankreich"]},
+      {"id":"sp007","q":"Fußball: Wer schoss das entscheidende Tor im WM-Finale 2014?","a":["Mario Götze","Götze"]},
+      {"id":"sp008","q":"Fußball: Wie viele WM-Tore schoss Miroslav Klose insgesamt (Allzeit-Rekord)?","a":["16","sechzehn"]},
+      {"id":"sp009","q":"Fußball: Welcher Verein gewann die UEFA Champions League 2024?","a":["Real Madrid","Real"]},
+      {"id":"sp010","q":"Fußball: Welcher Verein gewann die UEFA Champions League 2025?","a":["Paris Saint-Germain","PSG","Paris SG"]},
+      {"id":"sp011","q":"Fußball: Welcher Verein gewann die Bundesliga-Saison 2023/24?","a":["Bayer Leverkusen","Leverkusen","Bayer 04 Leverkusen"]},
+      {"id":"sp012","q":"Fußball: Trainer von Leverkusen 2023/24?","a":["Xabi Alonso","Alonso"]},
+      {"id":"sp013","q":"Fußball: Wer ist Allzeit-Torschützenkönig der Champions League?","a":["Cristiano Ronaldo","Ronaldo","CR7"]},
+      {"id":"sp014","q":"Fußball: Wer hält den Rekord der meisten Ballon-d'Or-Auszeichnungen?","a":["Lionel Messi","Messi"]},
+      {"id":"sp015","q":"Fußball: Welche Trikotnummer trug Maradona meistens?","a":["10","zehn"]},
+      {"id":"sp016","q":"Fußball: In welchem Stadion trägt der FC Bayern seine Heimspiele aus?","a":["Allianz Arena","Allianz-Arena"]},
+      {"id":"sp017","q":"Fußball: Welche Farben tragen die Spieler von Borussia Dortmund?","a":["Schwarz Gelb","Schwarz-Gelb","Gelb Schwarz","Gelb-Schwarz"]},
+      {"id":"sp018","q":"Fußball: Wer ist Rekord-Torschütze der Bundesliga (475 Tore)?","a":["Gerd Müller","Müller"]},
+      {"id":"sp019","q":"Fußball: Wie viele Bundesliga-Vereine gibt es?","a":["18","achtzehn"]},
+      {"id":"sp020","q":"Fußball: In welchem Jahr fand die erste Fußball-WM statt?","a":["1930"]},
+      {"id":"sp021","q":"Fußball: In welchem Land fand die erste Fußball-WM statt?","a":["Uruguay"]},
+      {"id":"sp022","q":"Fußball: Welche Mannschaft gewann die erste Bundesliga-Saison 1963/64?","a":["1. FC Köln","FC Köln","Köln"]},
+      {"id":"sp023","q":"Fußball: Welche Mannschaft heißt 'Königsblauen'?","a":["Schalke 04","Schalke","FC Schalke 04"]},
+      {"id":"sp024","q":"Fußball: Wer wurde 2024 Europameister?","a":["Spanien"]},
+      {"id":"sp025","q":"Fußball: Wo fand die EM 2024 statt?","a":["Deutschland"]},
+      {"id":"sp026","q":"Fußball: Wer ist 2024/25 Trainer der deutschen Nationalmannschaft?","a":["Julian Nagelsmann","Nagelsmann"]},
+      {"id":"sp027","q":"Fußball: Kapitän der deutschen Nationalmannschaft bei der EM 2024?","a":["Ilkay Gündogan","Gündogan","Gündoğan"]},
+      {"id":"sp028","q":"Fußball: Wie heißt das wichtigste Vereinsturnier in Südamerika?","a":["Copa Libertadores","Libertadores"]},
+      {"id":"sp029","q":"Fußball: Welche Position hat der Spieler mit der Trikotnummer 1 traditionell?","a":["Torwart","Torhüter","Tormann","Keeper"]},
+      {"id":"sp030","q":"Fußball: Was ist eine 'Bicycle Kick'?","a":["Fallrückzieher","ein Fallrückzieher"]},
+      {"id":"sp031","q":"Fußball: Welches Vereinslogo zeigt ein Schiff?","a":["Werder Bremen","Werder"]},
+      {"id":"sp032","q":"Fußball: Wie heißt die englische erste Liga?","a":["Premier League"]},
+      {"id":"sp033","q":"Fußball: Wie heißt die spanische erste Liga?","a":["La Liga","Primera División","LaLiga"]},
+      {"id":"sp034","q":"Fußball: Wie heißt die italienische erste Liga?","a":["Serie A"]},
+      {"id":"sp035","q":"Fußball: Wie viele Champions-League-Titel hat Real Madrid (Stand 2025)?","a":["15"]},
+      {"id":"sp036","q":"Tennis: Wer hat 24 Grand-Slam-Titel im Einzel der Herren?","a":["Novak Djokovic","Djokovic"]},
+      {"id":"sp037","q":"Tennis: In welcher Stadt findet Wimbledon statt?","a":["London"]},
+      {"id":"sp038","q":"Tennis: Wie heißt der Tennisplatz-Belag in Wimbledon?","a":["Rasen","Gras"]},
+      {"id":"sp039","q":"Formel 1: Wer wurde 2024 Weltmeister?","a":["Max Verstappen","Verstappen"]},
+      {"id":"sp040","q":"Formel 1: Wer hält den Rekord mit 7 WM-Titeln zusammen mit Schumacher?","a":["Lewis Hamilton","Hamilton"]},
+      {"id":"sp041","q":"Basketball: Wie viele Spieler pro Team auf dem Feld?","a":["5","fünf"]},
+      {"id":"sp042","q":"Basketball: In welcher Liga spielten die meisten NBA-Stars?","a":["NBA"]},
+      {"id":"sp043","q":"Basketball: Wer wurde 2024/25 NBA-Champion?","a":["Oklahoma City Thunder","OKC Thunder","Thunder","OKC"]},
+      {"id":"sp044","q":"Basketball: Wer ist 'King James'?","a":["LeBron James","LeBron"]},
+      {"id":"sp045","q":"Olympia: Wo fanden die Sommerspiele 2024 statt?","a":["Paris"]},
+      {"id":"sp046","q":"Olympia: Wer ist mit 23 Goldmedaillen erfolgreichster Olympionike?","a":["Michael Phelps","Phelps"]},
+      {"id":"sp047","q":"Boxen: Wie hieß Cassius Clay als Boxer?","a":["Muhammad Ali","Ali"]},
+      {"id":"sp048","q":"American Football: Wie heißt das Saisonendspiel?","a":["Super Bowl","Superbowl"]},
+      {"id":"sp049","q":"American Football: Wer gewann den Super Bowl 2025?","a":["Philadelphia Eagles","Eagles"]},
+      {"id":"sp050","q":"Eishockey: Wie heißt die Nordamerika-Profiliga?","a":["NHL"]},
+    ],
+    estimate: [
+    ]
+  },
+  games: {
+    name: "Videospiele & E-Sport",
+    text: [
+      {"id":"v001","q":"FIFA: Welcher Spieler war auf dem Cover von FIFA 21 (Standard Edition)?","a":["Kylian Mbappé","Mbappé","Mbappe"]},
+      {"id":"v002","q":"FIFA: Welche Firma entwickelte die FIFA-Spielereihe (bis zum Wechsel zu EA Sports FC)?","a":["EA Sports","Electronic Arts","EA"]},
+      {"id":"v003","q":"FIFA: Wie heißt das Nachfolgespiel von FIFA 23 nach dem Namenswechsel?","a":["EA Sports FC 24","EA FC 24","FC 24","EAFC 24"]},
+      {"id":"v004","q":"FIFA: In welchem Modus baut man sein eigenes Team mit Karten aus Spielern auf?","a":["Ultimate Team","FUT","FIFA Ultimate Team"]},
+      {"id":"v005","q":"FIFA: Welche Karten-Editionen erscheinen jeweils zum Halloween in Ultimate Team?","a":["Ultimate Scream","Rulebreakers","Scream","Halloween Cards"]},
+      {"id":"v006","q":"Valorant: Welche Firma entwickelt Valorant?","a":["Riot Games","Riot"]},
+      {"id":"v007","q":"Valorant: Wie heißt die Map mit der Seilrutsche, die im April 2020 zum Release erschien?","a":["Bind"]},
+      {"id":"v008","q":"Valorant: Welcher Agent ist ein indischer Duellist mit Energie-Wand?","a":["Phoenix"]},
+      {"id":"v009","q":"Valorant: Welcher Agent setzt 'Ravens' und 'Shadows' ein?","a":["Omen"]},
+      {"id":"v010","q":"Valorant: Wie heißt der jährliche Champions-Pokal?","a":["Valorant Champions","Champions"]},
+      {"id":"v011","q":"Valorant: Welches Team gewann Valorant Champions 2024 (Seoul)?","a":["EDward Gaming","EDG","Edward Gaming"]},
+      {"id":"v012","q":"Valorant: Wie viele Spieler pro Team in einem Match?","a":["5","fünf"]},
+      {"id":"v013","q":"Rust: Welche Firma entwickelt Rust?","a":["Facepunch Studios","Facepunch"]},
+      {"id":"v014","q":"Rust: Wie heißt das einfachste Bauwerk-Material zum Start?","a":["Holz","Wood"]},
+      {"id":"v015","q":"Rust: Wie nennt man die regelmäßigen Wipes?","a":["Wipe","Server Wipe","Map Wipe"]},
+      {"id":"v016","q":"Rust: Wie heißt die radioaktive Stadt mit Wissenschaftlern und Lootkisten in der Mitte der Map?","a":["Launch Site","Launch","Rocketsite"]},
+      {"id":"v017","q":"Fortnite: Welche Firma entwickelt Fortnite?","a":["Epic Games","Epic"]},
+      {"id":"v018","q":"Fortnite: In welcher Season (Kapitel 1) wurde das Battle-Royale-Spielmodus zum großen Hit (Ende 2017/Anfang 2018)?","a":["Season 2","Saison 2","2","Season 3","3"]},
+      {"id":"v019","q":"Fortnite: Wie heißt der Tanz 'Take the L'?","a":["Take the L","L-Tanz","Loser-Tanz"]},
+      {"id":"v020","q":"Fortnite: Wie heißt der 'Default Skin' Hauptcharakter (männlich)?","a":["Jonesy","Default"]},
+      {"id":"v021","q":"Fortnite: Welcher Marvel-Charakter war als Skin in Kapitel 2 Season 4 Hauptthema?","a":["Thor"]},
+      {"id":"v022","q":"Fortnite: Wie hieß das Event mit dem schwarzen Loch 2019?","a":["The End","Das Ende","Black Hole"]},
+      {"id":"v023","q":"Fortnite: Wie hieß die berühmte Map-Location, die wie ein Vulkan aussah (Pre-2019)?","a":["Tilted Towers","Tilted"]},
+      {"id":"v024","q":"Counter-Strike: Wie heißt die offizielle Nachfolger-Version von CS:GO seit 2023?","a":["Counter-Strike 2","CS2"]},
+      {"id":"v025","q":"Counter-Strike: Welche Map hat die Bombenplätze 'A-Long' und 'CT'?","a":["Dust 2","de_dust2","Dust II","Dust2"]},
+      {"id":"v026","q":"Counter-Strike: Wie viele Spieler pro Team?","a":["5","fünf"]},
+      {"id":"v027","q":"League of Legends: Welche Firma entwickelt LoL?","a":["Riot Games","Riot"]},
+      {"id":"v028","q":"League of Legends: Wie heißt die jährliche Weltmeisterschaft?","a":["Worlds","World Championship","League of Legends World Championship"]},
+      {"id":"v029","q":"League of Legends: Welches Team gewann die Worlds 2023?","a":["T1"]},
+      {"id":"v030","q":"League of Legends: Welcher koreanische Spieler gilt als 'GOAT' des Spiels?","a":["Faker","Lee Sang-hyeok"]},
+      {"id":"v031","q":"Minecraft: Wer entwickelte Minecraft ursprünglich?","a":["Notch","Markus Persson","Persson"]},
+      {"id":"v032","q":"Minecraft: Welche Firma kaufte Minecraft 2014?","a":["Microsoft"]},
+      {"id":"v033","q":"Minecraft: Wie heißt der Endboss?","a":["Ender Dragon","Enderdrache"]},
+      {"id":"v034","q":"GTA: In welcher fiktiven Stadt spielt GTA V?","a":["Los Santos"]},
+      {"id":"v035","q":"GTA: Wer sind die drei spielbaren Hauptcharaktere in GTA V?","a":["Michael, Franklin, Trevor","Michael Franklin Trevor","Trevor Michael Franklin","Franklin Michael Trevor","Michael Trevor Franklin"]},
+      {"id":"v036","q":"Call of Duty: Wie heißt der Battle-Royale-Modus von CoD?","a":["Warzone"]},
+      {"id":"v037","q":"Call of Duty: Wie hieß der berüchtigte Kapitän in Modern Warfare 2 (2009)?","a":["Captain Price","Price","Price"]},
+      {"id":"v038","q":"Pokémon: Wie heißt das erste Starter-Pokémon vom Typ Wasser in Rot/Blau?","a":["Schiggy","Squirtle"]},
+      {"id":"v039","q":"Pokémon: Welche Nummer hat Mewtu im Pokédex?","a":["150"]},
+      {"id":"v040","q":"Mario: Wie heißt die Prinzessin im Mario-Universum?","a":["Prinzessin Peach","Peach"]},
+      {"id":"v041","q":"Mario: Wie heißt Marios Erzfeind?","a":["Bowser"]},
+      {"id":"v042","q":"Zelda: Wie heißt der Hauptcharakter (Held) der Zelda-Serie?","a":["Link"]},
+      {"id":"v043","q":"E-Sport: Wie heißt die größte LAN für Counter-Strike, traditionell mit 'Major' bezeichnet?","a":["CS Major","Counter-Strike Major","Major"]},
+      {"id":"v044","q":"E-Sport: Wie heißt das jährliche Dota-2-Turnier mit Millionenpreisgeld?","a":["The International","TI"]},
+      {"id":"v045","q":"E-Sport: In welchem Land sitzt die Organisation Faze Clan ursprünglich?","a":["USA","Vereinigte Staaten","Amerika"]},
+      {"id":"v046","q":"Apex Legends: Welche Firma entwickelt Apex Legends?","a":["Respawn Entertainment","Respawn"]},
+      {"id":"v047","q":"Overwatch: Welche Firma entwickelt Overwatch?","a":["Blizzard","Blizzard Entertainment"]},
+      {"id":"v048","q":"Among Us: Welche Farbe ist der bekannteste Crewmate auf Memes?","a":["Rot","Red"]},
+      {"id":"v049","q":"Twitch: Welche Streaming-Plattform ist die führende für Gaming?","a":["Twitch"]},
+      {"id":"v050","q":"Twitch: Welcher deutsche Streamer ist mit über 4 Mio. Follower einer der größten in DE (gemeinsam mit anderen, beginnt mit M)?","a":["MontanaBlack","Monte","MontanaBlack88"]},
+    ],
+    estimate: [
+    ]
+  },
 };
+
+const GAME_POOL_SIZE = 25;
+
+// Pool-Auswahl beim Raum-Erstellen
+function buildGamePool(activeKeys, mode){
+  const subKey = (mode === 'estimate') ? 'estimate' : 'text';
+  let all = [];
+  for(const k of activeKeys){
+    const p = POOLS[k];
+    if(!p) continue;
+    const items = (p[subKey]||[]).map(q => ({ ...q, _pool: k }));
+    all = all.concat(items);
+  }
+  if(customQuestions && customQuestions[subKey]){
+    const items = customQuestions[subKey].map(q => ({ ...q, _pool: 'custom' }));
+    all = all.concat(items);
+  }
+  // Fisher-Yates Shuffle
+  for(let i = all.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all.slice(0, GAME_POOL_SIZE);
+}
 
 let customQuestions = null;
 
@@ -627,15 +982,26 @@ async function initBackend(){
 }
 
 /* ====== HANDLERS ====== */
+// Hilfsfunktion: welche Pools sind aktuell aktiviert
+function getActivePools(){
+  return Array.from(document.querySelectorAll('.poolBox:checked')).map(b => b.dataset.pool);
+}
+
 $('#btnCreate').onclick = async ()=>{
   const name = $('#hostName').value.trim();
   if(!name) return toast('Bitte Namen eingeben');
+  const activePools = getActivePools();
+  if(activePools.length === 0 && !customQuestions){
+    return toast('Mindestens einen Pool aktivieren oder eigene JSON hochladen');
+  }
   const code = randCode();
   const pid = uid();
   state.playerId = pid; state.playerName = name; state.isHost = true; state.roomCode = code;
   const init = {
     code, hostId: pid, status:'lobby', mode:'text',
-    questions: customQuestions || DEFAULT_QUESTIONS,
+    activePools,                                 // welche Pools aktiv sind
+    hasCustom: !!customQuestions,                // ob custom dazugehört
+    questions: null,                             // wird beim Spielstart befüllt
     players: { [pid]: { name, score: 0 } },
     currentIdx: -1, currentMode: 'text', round: null,
     ts: Date.now()
@@ -675,11 +1041,16 @@ $('#fileQuestions').onchange = async (e)=>{
   try{
     const txt = await f.text();
     const data = JSON.parse(txt);
-    if(!data.buzzer && !data.text && !data.estimate) throw new Error('Erwartet werden Felder buzzer/text/estimate');
+    // Akzeptiere sowohl altes Format (buzzer/text/estimate) als auch neues (mit id)
+    if(!data.buzzer && !data.text && !data.estimate) throw new Error('Erwartet werden Felder text/estimate (oder buzzer)');
+    // Buzzer-Fragen fließen in den Text-Pool (Buzzer-Modus verwendet Text-Fragen)
+    if(data.buzzer && !data.text) data.text = data.buzzer;
+    if(data.buzzer && data.text)  data.text = [...data.text, ...data.buzzer];
     customQuestions = data;
-    const c = (k)=> (data[k]?.length||0);
-    $('#loadedInfo').textContent = `Geladen: ${c('buzzer')} Buzzer · ${c('text')} Text · ${c('estimate')} Schätz`;
-    toast('Fragen geladen');
+    const t = data.text?.length || 0;
+    const est = data.estimate?.length || 0;
+    $('#loadedInfo').textContent = `Geladen: ${t} Text/Buzzer · ${est} Schätz – wird mit aktiven Pools gemischt`;
+    toast('Fragen geladen (additiv)');
   }catch(err){ toast('JSON ungültig: '+err.message); }
 };
 
@@ -727,9 +1098,19 @@ $('#copyLink').onclick = async ()=>{
 $('#btnStart').onclick = async ()=>{
   const mode = $('#gameMode').value;
   const timerSec = parseInt($('#timerSlider').value, 10) || 0;
+
+  // Game-Pool zusammenstellen aus den im Raum gemerkten aktiven Pools
+  const active = state.room?.activePools || [];
+  const gamePool = buildGamePool(active, mode);
+  if(gamePool.length === 0){
+    return toast('Keine Fragen verfügbar – aktiviere mehr Pools oder lade eine JSON');
+  }
+
   await backend.updateRoom(state.roomCode, r=>{
     r.status='playing'; r.currentMode = mode; r.currentIdx = 0;
     r.timerSec = timerSec;
+    // Game-Pool wird im Raum gespeichert: alle Spieler sehen exakt dieselben 25 Fragen in derselben Reihenfolge
+    r.questions = { [mode]: gamePool };
     r.round = freshRound(mode);
     if(timerSec > 0) r.round.endsAt = Date.now() + timerSec*1000;
   });
@@ -897,7 +1278,8 @@ function submitTextAnswer(opts){
     r.round.answers[state.playerId] = { text: v, ts: Date.now() };
 
     // Auto-Vergleich + Punkt, wenn richtig
-    const q = r.questions.text?.[r.currentIdx];
+    const list = r.questions?.[r.currentMode] || [];
+    const q = list[r.currentIdx];
     if(q && answerMatches(v, q.a)){
       r.round.grades = r.round.grades || {};
       if(r.round.grades[state.playerId] !== 'ok'){
@@ -952,7 +1334,8 @@ $('#btnRevealEst').onclick = ()=> backend.updateRoom(state.roomCode, r=>{ r.roun
 $('#btnAwardEst').onclick = ()=>{
   // Vergibt +1 an den nächsten der sortierten Liste, der noch nicht belohnt wurde
   backend.updateRoom(state.roomCode, r=>{
-    const q = r.questions.estimate[r.currentIdx];
+    const list = r.questions?.[r.currentMode] || [];
+    const q = list[r.currentIdx];
     if(!q) return;
     const target = Number(q.a);
     const answers = r.round.answers || {};
@@ -985,7 +1368,7 @@ $('#btnEndGame').onclick = ()=> backend.updateRoom(state.roomCode, r=>{ r.status
 
 function nextQuestion(){
   backend.updateRoom(state.roomCode, r=>{
-    const list = r.questions[r.currentMode] || [];
+    const list = r.questions?.[r.currentMode] || [];
     if(r.currentIdx+1 >= list.length){ r.status='ended'; return; }
     r.currentIdx++;
     r.round = freshRound(r.currentMode);
@@ -1072,7 +1455,7 @@ function render(){
   }
 
   // current question
-  const list = r.questions[r.currentMode] || [];
+  const list = r.questions?.[r.currentMode] || [];
   const q = list[r.currentIdx];
   if(!q){ $('#qText').textContent='Keine Fragen'; return; }
   $('#qNo').textContent = `Frage ${r.currentIdx+1} / ${list.length} · ${labelMode(r.currentMode)}`;
@@ -1416,6 +1799,15 @@ function tickTimer(){
   const params = new URLSearchParams(location.search);
   const r = params.get('room');
   if(r) $('#joinCode').value = r.toUpperCase();
+
+  // Pool-Fragenanzahlen im UI anzeigen
+  for(const key of Object.keys(POOLS)){
+    const el = document.getElementById('pc-' + key);
+    if(!el) continue;
+    const t = POOLS[key].text?.length || 0;
+    const e = POOLS[key].estimate?.length || 0;
+    el.textContent = e > 0 ? `${t} Text + ${e} Schätz` : `${t} Fragen`;
+  }
 })();
 
 </script>
