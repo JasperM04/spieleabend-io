@@ -1522,12 +1522,19 @@ function renderText(r,q){
       if(rr.round && !rr.round.revealed) rr.round.revealed = true;
     });
   }
-  $('#textInputArea').classList.toggle('hide', sent || round.revealed);
-  $('#textReview').classList.toggle('hide', !sent && !round.revealed);
-  $('#btnSubmitText').disabled = false;
-  $('#textAnswer').value = $('#textAnswer').value;
-  $('#textStatus').textContent = sent ? `Du hast eingereicht. (${got}/${total})` : '';
-  if(sent || round.revealed){
+
+  // Host sieht das Antwort-Panel sobald eine Antwort da ist (auch wenn er selbst nicht spielt)
+  // Andere Spieler sehen es erst, wenn sie selbst abgegeben haben oder die Lösung aufgedeckt ist
+  const showReview = state.isHost ? (got > 0 || round.revealed) : (sent || round.revealed);
+  // Host kann immer noch tippen, solange er nicht selbst eingereicht hat und nicht aufgelöst ist
+  const showInput = !sent && !round.revealed;
+
+  $('#textInputArea').classList.toggle('hide', !showInput);
+  $('#textReview').classList.toggle('hide', !showReview);
+  $('#btnSubmitText').disabled = !!sent;
+  $('#textStatus').textContent = sent ? `Du hast eingereicht. (${got}/${total})` : (state.isHost && got > 0 ? `${got}/${total} abgegeben` : '');
+
+  if(showReview){
     const list = Object.entries(round.answers||{}).map(([pid,a])=>{
       const name = r.players[pid]?.name || '?';
       const grade = round.grades?.[pid];
@@ -1544,14 +1551,12 @@ function renderText(r,q){
     $('#textAnswersList').innerHTML = list || '<p class="muted">Noch keine Antworten</p>';
     $('#textAnswersList').querySelectorAll('[data-grade-ok]').forEach(b=>b.onclick = ()=> hostGradeText(b.dataset.gradeOk, true));
     $('#textAnswersList').querySelectorAll('[data-grade-no]').forEach(b=>b.onclick = ()=> hostGradeText(b.dataset.gradeNo, false));
+    // Lösung nur anhängen, wenn die Frage aufgelöst ist
+    if(round.revealed){
+      $('#textAnswersList').insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:8px">Lösung: <span class="answer-pill">${escape(formatAnswer(q.a))}</span></p>`);
+    }
   }
   $('#hostTextControls').classList.toggle('hide', !state.isHost);
-  if(round.revealed){
-    const note = document.createElement('p');
-  }
-  if(round.revealed){
-    $('#textAnswersList').insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:8px">Lösung: <span class="answer-pill">${escape(formatAnswer(q.a))}</span></p>`);
-  }
 }
 
 function hostGradeText(pid, ok){
@@ -1584,25 +1589,41 @@ function renderEstimate(r,q){
       if(rr.round && !rr.round.revealed) rr.round.revealed = true;
     });
   }
-  $('#estInputArea').classList.toggle('hide', sent || round.revealed);
-  $('#estReview').classList.toggle('hide', !sent && !round.revealed);
-  $('#btnSubmitEst').disabled = false;
-  $('#estStatus').textContent = sent ? `Du hast eingereicht. (${got}/${total})` : '';
-  if(sent || round.revealed){
-    const target = Number(q.a);
-    const ranked = Object.entries(round.answers||{})
-      .map(([pid,a])=>({pid, num:Number(a.num), diff:Math.abs(Number(a.num)-target)}))
-      .sort((x,y)=>x.diff-y.diff);
-    const awarded = round.awarded || [];
-    $('#estAnswersList').innerHTML = ranked.map((row,i)=>{
-      const name = r.players[row.pid]?.name || '?';
-      const isAwarded = awarded.includes(row.pid);
-      return `<div class="answer-row ${isAwarded?'correct':''}">
-        <div><div class="who">${i+1}. ${escape(name)}</div><div class="ans">${row.num} · Δ ${round.revealed ? row.diff.toFixed(2) : '?'}</div></div>
-        ${isAwarded?'<div class="ans">+1</div>':''}
-      </div>`;
-    }).join('') || '<p class="muted">Noch keine Schätzungen</p>';
-    if(round.revealed){
+
+  // Host sieht das Panel sobald jemand abgegeben hat, aber Schätzwerte erst nach Reveal
+  const showReview = state.isHost ? (got > 0 || round.revealed) : (sent || round.revealed);
+  const showInput = !sent && !round.revealed;
+
+  $('#estInputArea').classList.toggle('hide', !showInput);
+  $('#estReview').classList.toggle('hide', !showReview);
+  $('#btnSubmitEst').disabled = !!sent;
+  $('#estStatus').textContent = sent ? `Du hast eingereicht. (${got}/${total})` : (state.isHost && got > 0 ? `${got}/${total} abgegeben` : '');
+
+  if(showReview){
+    if(!round.revealed){
+      // Vor Reveal: nur Liste wer schon abgegeben hat, keine Zahlen
+      const submitted = Object.keys(round.answers||{}).map(pid => {
+        const name = r.players[pid]?.name || '?';
+        return `<div class="answer-row">
+          <div><div class="who">${escape(name)}</div><div class="ans">eingereicht</div></div>
+        </div>`;
+      }).join('');
+      $('#estAnswersList').innerHTML = submitted || '<p class="muted">Noch keine Schätzungen</p>';
+    } else {
+      // Nach Reveal: gerankte Liste mit Diffs
+      const target = Number(q.a);
+      const ranked = Object.entries(round.answers||{})
+        .map(([pid,a])=>({pid, num:Number(a.num), diff:Math.abs(Number(a.num)-target)}))
+        .sort((x,y)=>x.diff-y.diff);
+      const awarded = round.awarded || [];
+      $('#estAnswersList').innerHTML = ranked.map((row,i)=>{
+        const name = r.players[row.pid]?.name || '?';
+        const isAwarded = awarded.includes(row.pid);
+        return `<div class="answer-row ${isAwarded?'correct':''}">
+          <div><div class="who">${i+1}. ${escape(name)}</div><div class="ans">${row.num} · Δ ${row.diff.toFixed(2)}</div></div>
+          ${isAwarded?'<div class="ans">+1</div>':''}
+        </div>`;
+      }).join('') || '<p class="muted">Keine Schätzungen</p>';
       $('#estAnswersList').insertAdjacentHTML('beforeend', `<p class="muted" style="margin-top:8px">Lösung: <span class="answer-pill">${target}</span></p>`);
     }
   }
