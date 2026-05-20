@@ -1827,7 +1827,7 @@ function tickTimer(){
     if(!el) continue;
     const t = POOLS[key].text?.length || 0;
     const e = POOLS[key].estimate?.length || 0;
-    el.textContent = e > 0 ? `${t} Text + ${e} Schätz` : `${t} Fragen`;
+    el.textContent = `${t} Fragen`
   }
 })();
 
