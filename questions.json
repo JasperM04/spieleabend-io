@@ -1,0 +1,37 @@
+{
+  "buzzer": [
+    { "q": "Welches chemische Element hat das Symbol 'Au'?", "a": "Gold" },
+    { "q": "In welchem Land liegt Machu Picchu?", "a": "Peru" },
+    { "q": "Wer schrieb 'Faust'?", "a": "Johann Wolfgang von Goethe" },
+    { "q": "Wie heißt die Hauptstadt von Kanada?", "a": "Ottawa" },
+    { "q": "Welches Tier ist auf dem Wappen von Australien (links)?", "a": "Känguru" }
+  ],
+
+  "text": [
+    { "q": "Nenne einen Song von Queen.",
+      "a": ["Bohemian Rhapsody", "We Will Rock You", "We Are the Champions", "Don't Stop Me Now", "Radio Ga Ga", "Killer Queen", "Somebody to Love", "Under Pressure"] },
+
+    { "q": "Was ist der längste Knochen im menschlichen Körper?",
+      "a": ["Oberschenkelknochen", "Femur"] },
+
+    { "q": "Welche Sprache wird in Brasilien gesprochen?",
+      "a": ["Portugiesisch", "Brasilianisches Portugiesisch"] },
+
+    { "q": "Nenne ein Werk von Picasso.",
+      "a": ["Guernica", "Les Demoiselles d'Avignon", "Die Demoiselles von Avignon", "Der alte Gitarrist", "Die Tragödie"] },
+
+    { "q": "Wie heißt die Hauptstadt von Spanien?",
+      "a": "Madrid" },
+
+    { "q": "Welcher Fluss fließt durch Wien?",
+      "a": ["Donau", "Die Donau"] }
+  ],
+
+  "estimate": [
+    { "q": "Wie viele Treppenstufen hat der Eiffelturm bis zur Spitze?", "a": 1665 },
+    { "q": "In welchem Jahr wurde das WWW erfunden?", "a": 1989 },
+    { "q": "Wie viele Sekunden hat ein Tag?", "a": 86400 },
+    { "q": "Durchschnittliche Tiefe der Ostsee in Metern?", "a": 52 },
+    { "q": "Wie viele Einwohner hat Island (in tausend)?", "a": 380 }
+  ]
+}
